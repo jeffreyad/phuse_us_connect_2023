@@ -1,0 +1,894 @@
+---
+title: "Programming CDISC ADaM ADNCA using R and `{admiral}`"
+author: "Jeff Dickinson, Navitas Data Sciences"
+format: 
+  revealjs: 
+    #incremental: true 
+    theme: serif
+    embed-resources: true
+editor: visual
+logo: ./images/Navitas.PNG
+---
+
+## Agenda
+
+-   Basic Concepts of Non-Compartmental Analysis NCA
+-   Quick overview of `{admiral}`
+-   Coding Steps for ADNCA
+-   New Functionality Highlights
+-   Conclusions
+-   Questions and Answers
+
+## Overview of CDISC Non-Compartmental Analysis
+
+[![https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0](./images/CDISC_ADNCA_ADaM_Capture.PNG)](<https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0>)
+
+## Pharmacokinetic Analysis
+
+[![Example PK Curve with Parameters](./images/PK_curve.PNG)](<https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0>)
+
+## Important Components of ADNCA datasets
+
+-   Inclusion of Both PK Concentration records `PC` and Dosing Records `EX`
+-   Timing Variables
+-   Duplicated Records for Analysis
+-   Exclusion Flags
+
+## Time Variables
+
+| Variable | Variable Label                         |
+|----------|----------------------------------------|
+| NFRLT    | Nom. Rel. Time from Analyte First Dose |
+| AFRLT    | Act. Rel. Time from Analyte First Dose |
+| NRRLT    | Nominal Rel. Time from Ref. Dose       |
+| ARRLT    | Actual Rel. Time from Ref. Dose        |
+| MRRLT    | Modified Rel. Time from Ref. Dose      |
+
+## Brief Overview of `{admiral}`
+
+[![https://github.com/pharmaverse/admiral](./images/admiral.png){width="574"}](https://github.com/pharmaverse/admiral)
+
+## `{admiral}`
+
+-   `AD`a`M i`n `R A`sset `L`ibrary
+-   `{admiral}` is Open Source and Collaborative
+-   `{admiral}` is Modular
+-   `{admiral}` is Part of Pharmaverse
+
+## `{admiral}` is part of Pharmaverse
+
+[![https://github.com/pharmaverse](./images/Pharmavers.png)](https://github.com/pharmaverse)
+
+## Programming Workflow
+
+-   [Read in Data](#readdata)
+
+-   [Expand Dosing Records](#expand)
+
+-   [Find First Dose and Calculate `FANLDTM`](#firstdose)
+
+-   [Find Reference Dose Dates Corresponding to PK Records](#dosedates)
+
+-   [Combine `PC` and `EX` Records and Derive Relative Time Variables](#relative)
+
+-   [Derive Analysis Variables](#analysis)
+
+## Programming Workflow (Continued)
+
+-   [Create Duplicated Records for Analysis](#copy)
+
+-   [Combine `ADPC` data with Duplicated Records](#combine)
+
+-   [Calculate Change from Baseline](#base)
+
+-   [Assign `ASEQ`](#aseq)
+
+-   [Add Additional Baseline Variables](#baselines)
+
+-   [Add ADSL variables](#adsl_vars)
+
+-   [Add Labels and Attributes](#attributes)
+
+## `{admiral}` Libraries
+
+```{r echo=TRUE, message=FALSE}
+library(admiral)
+library(admiraldev)
+library(dplyr)
+library(admiral.test)
+library(lubridate)
+library(stringr)
+
+```
+
+## Read in Data {#readdata}
+
+```{r echo=TRUE, message=FALSE}
+
+data("admiral_adsl")
+data("admiral_ex")
+data("admiral_pc")
+data("admiral_vs")
+
+adsl <- admiral_adsl
+ex <- convert_blanks_to_na(admiral_ex)
+pc <- convert_blanks_to_na(admiral_pc)
+vs <- convert_blanks_to_na(admiral_vs)
+
+```
+
+```{r echo=FALSE}
+options(max.print=25)
+
+ex <- filter(ex, USUBJID %in% c("01-701-1028"))
+pc <- filter(pc, USUBJID %in% c("01-701-1028"))
+
+param_lookup <- tibble::tribble(
+  ~PCTESTCD, ~PARAMCD, ~PARAM, ~PARAMN,
+  "XAN", "XAN", "Pharmacokinetic concentration of Xanomeline", 1,
+  "DOSE", "DOSE", "Xanomeline Patch Dose", 2,
+)
+
+print_df <- function(dataset, display_vars = NULL) {
+  display_vars <- assert_vars(display_vars, optional = TRUE)
+  assert_data_frame(dataset, required_vars = display_vars)
+
+  out <- dataset %>% 
+    select(!!!display_vars) 
+  
+  
+  head(out, n = 20)
+}
+
+
+```
+
+## `PC` Rawdata
+
+```{r}
+print_df(
+  pc,
+  display_vars = exprs(
+    USUBJID, PCTEST, PCDTC, VISIT, PCTPT, PCSTRESN
+  )
+)
+```
+
+## Join `ADSL` with `PC`
+
+-   Use function `derive_vars_merged()`
+-   Convert Dates to Numeric
+-   Functions
+    -   `derive_vars_dtm()`
+
+    -   `derive_vars_dtm_to_dt()`
+
+    -   `derive_vars_dtm_to_tm()`
+
+    -   `derive_vars_dy()`
+-   Derive `NFRLT` for `PC` data based on `PCTPTNUM`
+
+## `PC` Merge Code
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|5-9|11-15|24"
+
+adsl_vars <- exprs(TRTSDT, TRTSDTM, TRT01P, TRT01A)
+
+adpc <- pc %>%
+  # Join ADSL with PC (need TRTSDT for ADY derivation)
+  derive_vars_merged(
+    dataset_add = adsl,
+    new_vars = adsl_vars,
+    by_vars = exprs(STUDYID, USUBJID)
+  ) %>%
+  # Calculate ADTM, ADT, ADY
+  derive_vars_dtm(
+    new_vars_prefix = "A",
+    dtc = PCDTC,
+    time_imputation = "00:00:00"
+  ) %>%
+  # Derive dates and times from date/times
+  derive_vars_dtm_to_dt(exprs(ADTM)) %>%
+  derive_vars_dtm_to_tm(exprs(ADTM)) %>%
+  derive_vars_dy(reference_date = TRTSDT, source_vars = exprs(ADT)) %>%
+  # Derive event ID and nominal relative time from first dose (NFRLT)
+  mutate(
+    EVID = 0,
+    DRUG = PCTEST,
+    NFRLT = if_else(PCTPTNUM < 0, 0, PCTPTNUM), .after = USUBJID
+  )
+```
+
+## `PC` Merge Code Output
+
+```{r eval=TRUE, echo=FALSE}
+
+print_df(adpc, 
+         display_vars = exprs(USUBJID, PCTEST, ADTM, VISIT, PCTPT, NFRLT))
+
+```
+
+## `EX` Rawdata
+
+```{r}
+print_df(
+  ex,
+  display_vars = exprs(
+    USUBJID, EXTRT, EXDOSFRQ, EXSTDTC, EXENDTC, VISIT, VISITDY
+  )
+)
+```
+
+## Merge `ADSL` with `EX`
+
+-   Use Function `derive_vars_merged()`
+-   Keep Only Non-Zero Dose
+-   Convert Dates to Numeric
+-   Impute missing times to 0:00\*
+-   Functions
+    -   `derive_vars_dtm()`
+
+    -   `derive_vars_dtm_to_dt()`
+-   Derive `NFRLT` based on `VISITDY`
+
+## `EX` Merge Code
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|4-8|14-18|27"
+#| 
+# ---- Get dosing information ----
+
+ex <- ex %>%
+  derive_vars_merged(
+    dataset_add = adsl,
+    new_vars = adsl_vars,
+    by_vars = exprs(STUDYID, USUBJID)
+  ) %>%
+  # Keep records with nonzero dose
+  filter(EXDOSE > 0) %>%
+  # Add time and set missing end date to start date
+  # Impute missing time to 00:00:00
+  # Derive Analysis Start and End Dates
+  derive_vars_dtm(
+    new_vars_prefix = "AST",
+    dtc = EXSTDTC,
+    time_imputation = "00:00:00"
+  ) %>%
+  derive_vars_dtm(
+    new_vars_prefix = "AEN",
+    dtc = EXENDTC,
+    time_imputation = "00:00:00"
+  ) %>%
+  # Derive event ID and nominal relative time from first dose (NFRLT)
+  mutate(
+    EVID = 1,
+    NFRLT = 24 * (VISITDY - 1), .after = USUBJID
+  ) %>%
+  # Set missing end dates to start date
+  mutate(AENDTM = case_when(
+    is.na(AENDTM) ~ ASTDTM,
+    TRUE ~ AENDTM
+  )) %>%
+  # Derive dates from date/times
+  derive_vars_dtm_to_dt(exprs(ASTDTM)) %>%
+  derive_vars_dtm_to_dt(exprs(AENDTM))
+```
+
+## `EX` Merge Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  ex,
+  display_vars = exprs(
+    USUBJID, EXTRT, EXDOSFRQ, ASTDT, AENDT, VISITDY, NFRLT
+  )
+)
+```
+
+## Expand Dosing Records {#expand}
+
+-   Need to add records between start date and end date
+-   Use function `create_single_dose_dataset()`
+-   Need to also expand nominal relative time `NFRLT`
+-   For example `EXDOSFRQ` = "QD" will expand `NFRLT` by 24 hours
+-   New feature of function
+
+## Expansion Example Code
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|4-18|10"
+# ---- Expand dosing records between start and end dates ----
+
+ex_exp <- ex %>%
+  create_single_dose_dataset(
+    dose_freq = EXDOSFRQ,
+    start_date = ASTDT,
+    start_datetime = ASTDTM,
+    end_date = AENDT,
+    end_datetime = AENDTM,
+    nominal_time = NFRLT,
+    lookup_table = dose_freq_lookup,
+    lookup_column = CDISC_VALUE,
+    keep_source_vars = exprs(
+      STUDYID, USUBJID, EVID, EXDOSFRQ, EXDOSFRM,
+      NFRLT, EXDOSE, EXTRT, ASTDT, ASTDTM, AENDT, AENDTM,
+      VISIT, VISITNUM, VISITDY,
+      TRT01A, TRT01P, DOMAIN, EXSEQ, !!!adsl_vars
+    )
+  ) %>%
+  # Derive AVISIT based on nominal relative time
+  mutate(
+    AVISITN = NFRLT %/% 24 + 1,
+    AVISIT = paste("Day", AVISITN),
+    ADTM = ASTDTM,
+    DRUG = EXTRT,
+  ) %>%
+  # Derive dates and times from datetimes
+  derive_vars_dtm_to_dt(exprs(ADTM)) %>%
+  derive_vars_dtm_to_tm(exprs(ADTM)) %>%
+  derive_vars_dtm_to_tm(exprs(ASTDTM)) %>%
+  derive_vars_dtm_to_tm(exprs(AENDTM)) %>%
+  derive_vars_dy(reference_date = TRTSDT, source_vars = exprs(ADT))
+```
+
+## Expansion Code Output
+
+```{r eval=TRUE, echo=FALSE}
+
+print_df(
+  ex_exp,
+  display_vars = exprs(USUBJID, DRUG, EXDOSFRQ, ASTDTM, AENDTM, AVISIT, NFRLT)
+)
+```
+
+## Find First Dose and Calculate `FANLDTM` {#firstdose}
+
+-   Use Function `derive_vars_merged()`
+-   Parameter `new_vars` used to derive `FANLDTM`
+-   Recalculate `AVISIT` and `AVISITN` based on `NFRLT` for this study
+
+## First Dose Code
+
+```{r eval=TRUE, echo=TRUE, message=FALSE}
+#| code-line-numbers: "|5-12|8|16-17"
+# ---- Find first dose per treatment per subject ----
+# ---- Join with ADPC data and keep only subjects with dosing ----
+
+adpc <- adpc %>%
+  derive_vars_merged(
+    dataset_add = ex_exp,
+    filter_add = (EXDOSE > 0 & !is.na(ADTM)),
+    new_vars = exprs(FANLDTM = ADTM),
+    order = exprs(ADTM, EXSEQ),
+    mode = "first",
+    by_vars = exprs(STUDYID, USUBJID, DRUG)
+  ) %>%
+  filter(!is.na(FANLDTM)) %>%
+  # Derive AVISIT from nominal relative time
+  mutate(
+    AVISITN = NFRLT %/% 24 + 1,
+    AVISIT = paste("Day", AVISITN),
+  )
+```
+
+## First Dose Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  adpc,
+  display_vars = exprs(USUBJID, FANLDTM, AVISIT, ADTM, PCTPT)
+)
+```
+
+## Find Reference Dose Dates Corresponding to PK Records {#dosedates}
+
+-   Use Function `derive_vars_joined()`
+-   Parameter `filter_join` used to set condition
+
+## Find Reference Dose Dates Code
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|6-19|16"
+# ---- Find previous dose  ----
+# Use derive_vars_joined() for consistency with other variables
+# This is equivalent to derive_vars_last_dose() in this case
+
+adpc <- adpc %>%
+  derive_vars_joined(
+    dataset_add = ex_exp,
+    by_vars = exprs(USUBJID),
+    order = exprs(ADTM),
+    new_vars = exprs(
+      ADTM_prev = ADTM, EXDOSE_prev = EXDOSE, AVISIT_prev = AVISIT,
+      AENDTM_prev = AENDTM
+    ),
+    join_vars = exprs(ADTM),
+    filter_add = NULL,
+    filter_join = ADTM > ADTM.join,
+    mode = "last",
+    check_type = "none"
+  )
+```
+
+## Find Reference Dose Dates Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  adpc,
+  display_vars = exprs(
+    USUBJID,
+    VISIT, ADTM, VISIT, PCTPT, ADTM_prev, EXDOSE_prev, AVISIT_prev
+  )
+)
+```
+
+## Find Next Dose
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|4-17|14"
+# ---- Find next dose  ----
+
+adpc <- adpc %>%
+  derive_vars_joined(
+    dataset_add = ex_exp,
+    by_vars = exprs(USUBJID),
+    order = exprs(ADTM),
+    new_vars = exprs(
+      ADTM_next = ADTM, EXDOSE_next = EXDOSE, AVISIT_next = AVISIT,
+      AENDTM_next = AENDTM
+    ),
+    join_vars = exprs(ADTM),
+    filter_add = NULL,
+    filter_join = ADTM <= ADTM.join,
+    mode = "first",
+    check_type = "none"
+  )
+```
+
+## Find Next Dose Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  adpc,
+  display_vars = exprs(
+    USUBJID,
+    VISIT, ADTM, VISIT, PCTPT, ADTM_next, EXDOSE_next, AVISIT_next
+  )
+)
+```
+
+## Find Previous Nominal Dose
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|4-14|11"
+# ---- Find previous nominal time ----
+
+adpc <- adpc %>%
+  derive_vars_joined(
+    dataset_add = ex_exp,
+    by_vars = exprs(USUBJID),
+    order = exprs(NFRLT),
+    new_vars = exprs(NFRLT_prev = NFRLT),
+    join_vars = exprs(NFRLT),
+    filter_add = NULL,
+    filter_join = NFRLT > NFRLT.join,
+    mode = "last",
+    check_type = "none"
+  )
+```
+
+## Find Next Nominal Dose
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|4-14|11"
+# ---- Find next nominal time ----
+
+adpc <- adpc %>%
+  derive_vars_joined(
+    dataset_add = ex_exp,
+    by_vars = exprs(USUBJID),
+    order = exprs(NFRLT),
+    new_vars = exprs(NFRLT_next = NFRLT),
+    join_vars = exprs(NFRLT),
+    filter_add = NULL,
+    filter_join = NFRLT <= NFRLT.join,
+    mode = "first",
+    check_type = "none"
+  )
+```
+
+## Find Next Nominal Dose Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  adpc,
+  display_vars = exprs(
+    USUBJID, NFRLT, PCTPT, NFRLT_prev, NFRLT_next
+  )
+)
+```
+
+## Combine PC and EX Records and Derive Relative Time Variables {#relative}
+
+-   Include both dosing and concentration records
+-   Use function `derive_vars_duration()`
+-   Create Actual Relative Time `AFRLT`
+
+## Combine PC and EX Records and Derive Relative Time Variables Code
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|5|8|16-23|25-32|34-41|43,50"
+# ---- Combine ADPC and EX data ----
+# Derive Relative Time Variables
+
+
+adpc <- bind_rows(adpc, ex_exp) %>%
+  group_by(USUBJID, DRUG) %>%
+  mutate(
+    FANLDTM = min(FANLDTM, na.rm = TRUE),
+    min_NFRLT = min(NFRLT_prev, na.rm = TRUE),
+    maxdate = max(ADT[EVID == 0], na.rm = TRUE), .after = USUBJID
+  ) %>%
+  arrange(USUBJID, ADTM) %>%
+  ungroup() %>%
+  filter(ADT <= maxdate) %>%
+  # Derive Actual Relative Time from First Dose (AFRLT)
+  derive_vars_duration(
+    new_var = AFRLT,
+    start_date = FANLDTM,
+    end_date = ADTM,
+    out_unit = "hours",
+    floor_in = FALSE,
+    add_one = FALSE
+  ) %>%
+  # Derive Actual Relative Time from Reference Dose (ARRLT)
+  derive_vars_duration(
+    new_var = ARRLT,
+    start_date = ADTM_prev,
+    end_date = ADTM,
+    out_unit = "hours",
+    floor_in = FALSE,
+    add_one = FALSE
+  ) %>%
+  # Derive Actual Relative Time from Next Dose (AXRLT not kept)
+  derive_vars_duration(
+    new_var = AXRLT,
+    start_date = ADTM_next,
+    end_date = ADTM,
+    out_unit = "hours",
+    floor_in = FALSE,
+    add_one = FALSE
+  ) %>%
+  mutate(
+    ARRLT = case_when(
+      EVID == 1 ~ 0,
+      is.na(ARRLT) ~ AXRLT,
+      TRUE ~ ARRLT
+    ),
+
+    # Derive Reference Dose Date
+    PCRFTDTM = case_when(
+      EVID == 1 ~ ADTM,
+      is.na(ADTM_prev) ~ ADTM_next,
+      TRUE ~ ADTM_prev
+    )
+  ) %>%
+  # Derive dates and times from datetimes
+  derive_vars_dtm_to_dt(exprs(FANLDTM)) %>%
+  derive_vars_dtm_to_tm(exprs(FANLDTM)) %>%
+  derive_vars_dtm_to_dt(exprs(PCRFTDTM)) %>%
+  derive_vars_dtm_to_tm(exprs(PCRFTDTM))
+```
+
+## Derive Relative Time Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  adpc,
+  display_vars = exprs(USUBJID, FANLDTM, AVISIT, PCTPT, AFRLT, ARRLT, AXRLT)
+)
+```
+
+## Find Nominal Relative Times
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|5|10"
+
+adpc <- adpc %>%
+  # Derive Nominal Relative Time from Reference Dose (NRRLT)
+  mutate(
+    NRRLT = case_when(
+      EVID == 1 ~ 0,
+      is.na(NFRLT_prev) ~ NFRLT - min_NFRLT,
+      TRUE ~ NFRLT - NFRLT_prev
+    ),
+    NXRLT = case_when(
+      EVID == 1 ~ 0,
+      TRUE ~ NFRLT - NFRLT_next
+    )
+  )
+```
+
+## Nominal Relative Times Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  adpc,
+  display_vars = exprs(USUBJID, AVISIT, PCTPT, NFRLT, NRRLT, NXRLT)
+)
+```
+
+## Derive Analysis Variables {#analysis}
+
+```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|4,8|12"
+
+adpc <- adpc %>%
+  mutate(
+    ATPTN = case_when(
+      EVID == 1 ~ 0,
+      TRUE ~ PCTPTNUM
+    ),
+    ATPT = case_when(
+      EVID == 1 ~ "Dose",
+      TRUE ~ PCTPT
+    ),
+    ATPTREF = case_when(
+      EVID == 1 ~ AVISIT,
+      is.na(AVISIT_prev) ~ AVISIT_next,
+      TRUE ~ AVISIT_prev
+    ),
+    # Derive baseline flag for pre-dose records
+    ABLFL = case_when(
+      ATPT == "Pre-dose" ~ "Y",
+      TRUE ~ NA_character_
+    ),
+    # Derive BASETYPE
+    BASETYPE = paste(ATPTREF, "Baseline"),
+
+    # Derive Actual Dose
+    DOSEA = case_when(
+      EVID == 1 ~ EXDOSE,
+      is.na(EXDOSE_prev) ~ EXDOSE_next,
+      TRUE ~ EXDOSE_next
+    ),
+    # Derive Planned Dose
+    DOSEP = case_when(
+      TRT01P == "Xanomeline High Dose" ~ 81,
+      TRT01P == "Xanomeline Low Dose" ~ 54
+    ),
+    DOSEU = "mg",
+  ) %>%
+  mutate(
+    RFLTU = "h",
+    RRLTU = "h",
+    PARAMCD = coalesce(PCTESTCD, "DOSE"),
+    ALLOQ = PCLLOQ,
+    AVAL = case_when(
+      EVID == 1 ~ EXDOSE,
+      PCSTRESC == "<BLQ" & NFRLT == 0 ~ 0,
+      PCSTRESC == "<BLQ" & NFRLT > 0 ~ 0.5 * ALLOQ,
+      TRUE ~ PCSTRESN
+    ),
+    AVALC = case_when(
+      EVID == 1 ~ paste(EXDOSE),
+      TRUE ~ PCSTRESC
+    ),
+    AVALCAT1 = if_else(PCSTRESC == "<BLQ", PCSTRESC, prettyNum(signif(AVAL, digits = 3))),
+  ) %>%
+  # Add SRCSEQ
+  mutate(
+    SRCDOM = DOMAIN,
+    SRCVAR = "SEQ",
+    SRCSEQ = coalesce(PCSEQ, EXSEQ)
+  )
+```
+
+## Analysis Variable Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  adpc,
+  display_vars = exprs(USUBJID, NFRLT, AVISIT, ATPT, ABLFL, ATPTREF, AVAL, AVALCAT1)
+)
+```
+
+## Create Duplicated Records for Analysis {#copy}
+
+-   Create `DTYPE` = "COPY" Records
+-   Original `PCSEQ` is retained
+-   Change "24h Post-dose" to "Pre-dose"
+-   `ABLFL` is set to "Y"
+
+## Duplicated Records for Analysis Code 
+```{r eval=TRUE, echo=TRUE}
+# ---- Create DTYPE copy records ----
+
+dtype <- adpc %>%
+  filter(NFRLT > 0 & NXRLT == 0 & EVID == 0 & !is.na(AVISIT_next)) %>%
+  select(-PCRFTDT, -PCRFTTM) %>%
+  # Re-derive variables in for DTYPE copy records
+  mutate(
+    ABLFL = NA_character_,
+    ATPTREF = AVISIT_next,
+    ARRLT = AXRLT,
+    NRRLT = NXRLT,
+    PCRFTDTM = ADTM_next,
+    DOSEA = EXDOSE_next,
+    BASETYPE = paste(AVISIT_next, "Baseline"),
+    ATPT = "Pre-dose",
+    ATPTN = NFRLT,
+    ABLFL = "Y",
+    DTYPE = "COPY"
+  ) %>%
+  derive_vars_dtm_to_dt(exprs(PCRFTDTM)) %>%
+  derive_vars_dtm_to_tm(exprs(PCRFTDTM))
+```
+
+## Duplicated Records for Analysis Output
+
+```{r eval=TRUE, echo=FALSE}
+print_df(
+  dtype,
+  display_vars = exprs(USUBJID, DTYPE, ATPT, NFRLT, NRRLT, AFRLT, ARRLT, BASETYPE)
+)
+```
+
+## Combine `ADPC` data with Duplicated Records {#combine}
+
+```{r eval=TRUE, echo=TRUE}
+# ---- Combine original records and DTYPE copy records ----
+
+adpc <- bind_rows(adpc, dtype) %>%
+  arrange(STUDYID, USUBJID, BASETYPE, ADTM, NFRLT) %>%
+  mutate(
+    # Derive MRRLT, ANL01FL and ANL02FL
+    MRRLT = if_else(ARRLT < 0, 0, ARRLT),
+    ANL01FL = "Y",
+    ANL02FL = if_else(is.na(DTYPE), "Y", NA_character_),
+  )
+```
+
+## Combine `ADPC` Output
+
+```{r eval=TRUE, echo=FALSE}
+adpc %>%
+  print_df(display_vars = exprs(STUDYID, USUBJID, BASETYPE, ADTM, ATPT, NFRLT, NRRLT, ARRLT, MRRLT))
+```
+
+## Calculate Change from Baseline {#base}
+
+```{r eval=TRUE, echo=TRUE}
+
+# ---- Calculate BASE and Change from Baseline ----
+
+adpc <- adpc %>%
+  # Derive BASE
+  derive_var_base(
+    by_vars = exprs(STUDYID, USUBJID, PARAMCD, BASETYPE),
+    source_var = AVAL,
+    new_var = BASE,
+    filter = ABLFL == "Y"
+  )
+
+adpc <- derive_var_chg(adpc)
+```
+
+## Baseline and Change Output
+
+```{r eval=TRUE, echo=FALSE}
+adpc %>%
+  print_df(display_vars = exprs(
+    USUBJID, BASETYPE, DTYPE, AVISIT, ATPT, AVAL, NFRLT, NRRLT, AFRLT, ARRLT, BASE, CHG
+  ))
+```
+
+## Add `ASEQ` {#aseq}
+
+```{r eval=TRUE, echo=TRUE}
+# ---- Add ASEQ ----
+
+adpc <- adpc %>%
+  # Calculate ASEQ
+  derive_var_obs_number(
+    new_var = ASEQ,
+    by_vars = exprs(STUDYID, USUBJID),
+    order = exprs(ADTM, BASETYPE, EVID, AVISITN, ATPTN, DTYPE),
+    check_type = "error"
+  ) %>%
+  # Remove temporary variables
+  select(
+    -DOMAIN, -PCSEQ, -starts_with("orig"), -starts_with("min"),
+    -starts_with("max"), -starts_with("EX"), -ends_with("next"),
+    -ends_with("prev"), -DRUG, -EVID, -AXRLT, -NXRLT
+  ) %>%
+  # Derive PARAM and PARAMN
+  derive_vars_merged(dataset_add = select(param_lookup, -PCTESTCD), by_vars = exprs(PARAMCD))
+```
+
+## `ASEQ` Ouput
+
+```{r eval=TRUE, echo=FALSE}
+adpc %>%
+  print_df(display_vars = exprs(
+    USUBJID, BASETYPE, DTYPE, AVISIT, ATPT, AVAL, NFRLT, NRRLT, AFRLT, ARRLT, ASEQ
+  ))
+```
+
+## Add Additional Baseline Variables {#baselines}
+
+-   Derive additional baseline values from `VS`
+-   Baseline height `HTBL` and weight `WTBL`
+-   Compute body mass index (BMI) with `compute_bmi()`
+
+##  Additional Baseline Variables Code
+```{r eval=TRUE, echo=TRUE}
+
+# Derive additional baselines from VS
+adpc <- adpc %>%
+  derive_vars_merged(
+    dataset_add = vs,
+    filter_add = VSTESTCD == "HEIGHT",
+    by_vars = exprs(STUDYID, USUBJID),
+    new_vars = exprs(HTBL = VSSTRESN, HTBLU = VSSTRESU)
+  ) %>%
+  derive_vars_merged(
+    dataset_add = vs,
+    filter_add = VSTESTCD == "WEIGHT" & VSBLFL == "Y",
+    by_vars = exprs(STUDYID, USUBJID),
+    new_vars = exprs(WTBL = VSSTRESN, WTBLU = VSSTRESU)
+  ) %>%
+  mutate(
+    BMIBL = compute_bmi(height = HTBL, weight = WTBL),
+    BMIBLU = "kg/m^2"
+  )
+```
+
+## Additional Baseline Output
+
+```{r eval=TRUE, echo=FALSE}
+adpc %>%
+  print_df(display_vars = exprs(
+    USUBJID, HTBL, HTBLU, WTBL, WTBLU, BMIBL, BMIBLU, BASETYPE, ATPT, AVAL
+  ))
+```
+
+## Add the `ADSL` variables {#adsl_vars}
+
+```{r eval=TRUE, echo=TRUE}
+# Add all ADSL variables
+adpc <- adpc %>%
+  derive_vars_merged(
+    dataset_add = select(adsl, !!!negate_vars(adsl_vars)),
+    by_vars = exprs(STUDYID, USUBJID)
+  )
+```
+
+## Add Labels and Attributes {#attributes}
+
+-   [metacore](https://atorus-research.github.io/metacore/): Establish a common foundation for the use of metadata within an R session.
+
+-   [metatools](https://pharmaverse.github.io/metatools/):
+
+-   [xportr](https://atorus-research.github.io/xportr/): -- Add metadata formats -- Convert Attributes -- Create Transport File
+
+## Example Scripts
+
+| ADaM | Sample Code                                                                                             |
+|-------------------|-----------------------------------------------------|
+| ADPC | [ad_adpc.R](https://github.com/pharmaverse/admiral/blob/main/inst/templates/ad_adpc.R){target="_blank"} |
+
+## Questions and Answers
+
+## Thank You
+
+-   `{admiral}` Team
+-   Roche and Genentech Colleagues
+-   Navitas Data Sciences Colleagues
+
+## Contact
+
+-   Jeff Dickinson
+-   jeff.dickinson\@navitaslifesciences.com
+-   GitHub: jeffreyad (<https://github.com/jeffreyad>)
+-   Slack Pharmaverse Channel
