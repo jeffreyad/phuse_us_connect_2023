@@ -21,11 +21,11 @@ logo: ./images/Navitas.PNG
 
 ## Overview of CDISC Non-Compartmental Analysis
 
-[![https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0](./images/CDISC_ADNCA_ADaM_Capture.PNG)](<https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0>)
+[![https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0](./images/CDISC_ADNCA_ADaM_Capture.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
 
 ## Pharmacokinetic Analysis
 
-[![Example PK Curve with Parameters](./images/PK_curve.PNG)](<https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0>)
+[![Example PK Curve with Parameters](./images/PK_curve.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
 
 ## Important Components of ADNCA datasets
 
@@ -516,6 +516,7 @@ print_df(
 -   Create Actual Relative Time `AFRLT`
 
 ## Combine PC and EX Records and Derive Relative Time Variables Code
+
 ```{r eval=TRUE, echo=TRUE}
 #| code-line-numbers: "|5|8|16-23|25-32|34-41|43,50"
 # ---- Combine ADPC and EX data ----
@@ -700,7 +701,8 @@ print_df(
 -   Change "24h Post-dose" to "Pre-dose"
 -   `ABLFL` is set to "Y"
 
-## Duplicated Records for Analysis Code 
+## Duplicated Records for Analysis Code
+
 ```{r eval=TRUE, echo=TRUE}
 # ---- Create DTYPE copy records ----
 
@@ -821,7 +823,8 @@ adpc %>%
 -   Baseline height `HTBL` and weight `WTBL`
 -   Compute body mass index (BMI) with `compute_bmi()`
 
-##  Additional Baseline Variables Code
+## Additional Baseline Variables Code
+
 ```{r eval=TRUE, echo=TRUE}
 
 # Derive additional baselines from VS
@@ -875,7 +878,7 @@ adpc <- adpc %>%
 ## Example Scripts
 
 | ADaM | Sample Code                                                                                             |
-|-------------------|-----------------------------------------------------|
+|--------------------|----------------------------------------------------|
 | ADPC | [ad_adpc.R](https://github.com/pharmaverse/admiral/blob/main/inst/templates/ad_adpc.R){target="_blank"} |
 
 ## Questions and Answers
