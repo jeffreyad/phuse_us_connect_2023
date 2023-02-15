@@ -21,7 +21,9 @@ logo: ./images/Navitas.PNG
 
 ## Overview of CDISC Non-Compartmental Analysis
 
-[![https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0](./images/CDISC_ADNCA_ADaM_Capture.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
+[![](./images/CDISC_ADNCA_ADaM_Capture.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
+
+<https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0>
 
 ## Pharmacokinetic Analysis
 
@@ -30,7 +32,7 @@ logo: ./images/Navitas.PNG
 ## Important Components of ADNCA datasets
 
 -   Inclusion of Both PK Concentration records `PC` and Dosing Records `EX`
--   Timing Variables
+-   Timing Variables for Nominal and Actual Time
 -   Duplicated Records for Analysis
 -   Exclusion Flags
 
@@ -46,18 +48,52 @@ logo: ./images/Navitas.PNG
 
 ## Brief Overview of `{admiral}`
 
-[![https://github.com/pharmaverse/admiral](./images/admiral.png){width="574"}](https://github.com/pharmaverse/admiral)
+[![](./images/admiral.png){width="574"}](https://github.com/pharmaverse/admiral)
+
+<https://github.com/pharmaverse/admiral>
 
 ## `{admiral}`
 
+::: incremental
 -   `AD`a`M i`n `R A`sset `L`ibrary
+
 -   `{admiral}` is Open Source and Collaborative
+
 -   `{admiral}` is Modular
+
 -   `{admiral}` is Part of Pharmaverse
+:::
 
-## `{admiral}` is part of Pharmaverse
+## `{admiral}` is Modular
 
-[![https://github.com/pharmaverse](./images/Pharmavers.png)](https://github.com/pharmaverse)
+-   Not One Large Function (e.g. `create_adpc()`)
+
+-   Multiple Coordinated Functions
+
+::: {.columns}
+::: {.column width="50%"}
+![](images/ModularPicture3.png){width="100%"}
+:::
+
+::: {.column width="50%"}
+![](images/ModularPicture4.png){width="100%"}
+:::
+:::
+
+## `{admiral}` is Part of Pharmaverse
+
+[![](./images/Pharmavers.png)](https://github.com/pharmaverse)
+
+<https://github.com/pharmaverse>
+
+## `{adimiral}` updates for PK 
+(March 6, 2023 release 0.10.0)
+
+-   New `ad_adpc.R` Template
+
+-   New PK Programming Vignette
+
+-   Updates to `create_single_dose_dataset()` function
 
 ## Programming Workflow
 
@@ -94,8 +130,8 @@ logo: ./images/Navitas.PNG
 ```{r echo=TRUE, message=FALSE}
 library(admiral)
 library(admiraldev)
-library(dplyr)
 library(admiral.test)
+library(dplyr)
 library(lubridate)
 library(stringr)
 
@@ -593,7 +629,7 @@ print_df(
 ## Find Nominal Relative Times
 
 ```{r eval=TRUE, echo=TRUE}
-#| code-line-numbers: "|5|10"
+#| code-line-numbers: "|4|9"
 
 adpc <- adpc %>%
   # Derive Nominal Relative Time from Reference Dose (NRRLT)
@@ -622,7 +658,6 @@ print_df(
 ## Derive Analysis Variables {#analysis}
 
 ```{r eval=TRUE, echo=TRUE}
-#| code-line-numbers: "|4,8|12"
 
 adpc <- adpc %>%
   mutate(
@@ -696,6 +731,8 @@ print_df(
 
 ## Create Duplicated Records for Analysis {#copy}
 
+-   Use One Record in More than One Way
+-   Record may be both "24 Hour Post-Dose" and "Pre-Dose"
 -   Create `DTYPE` = "COPY" Records
 -   Original `PCSEQ` is retained
 -   Change "24h Post-dose" to "Pre-dose"
@@ -802,7 +839,7 @@ adpc <- adpc %>%
   select(
     -DOMAIN, -PCSEQ, -starts_with("orig"), -starts_with("min"),
     -starts_with("max"), -starts_with("EX"), -ends_with("next"),
-    -ends_with("prev"), -DRUG, -EVID, -AXRLT, -NXRLT
+    -ends_with("prev"), -DRUG, -EVID, -AXRLT, -NXRLT, -VISITDY
   ) %>%
   # Derive PARAM and PARAMN
   derive_vars_merged(dataset_add = select(param_lookup, -PCTESTCD), by_vars = exprs(PARAMCD))
@@ -869,17 +906,24 @@ adpc <- adpc %>%
 
 ## Add Labels and Attributes {#attributes}
 
--   [metacore](https://atorus-research.github.io/metacore/): Establish a common foundation for the use of metadata within an R session.
+-   [metacore](https://atorus-research.github.io/metacore/): establish a common foundation for the use of metadata within an R session
 
--   [metatools](https://pharmaverse.github.io/metatools/):
+-   [metatools](https://pharmaverse.github.io/metatools/):enable the use of metacore objects: build datasets or enhance columns in existing datasets as well as checking datasets against the metadata
 
--   [xportr](https://atorus-research.github.io/xportr/): -- Add metadata formats -- Convert Attributes -- Create Transport File
+-   [xportr](https://atorus-research.github.io/xportr/): functionality to associate all metadata information to a local R data frame, perform data set level validation checks and convert into a transport v5 file(xpt)
 
 ## Example Scripts
 
 | ADaM | Sample Code                                                                                             |
-|--------------------|----------------------------------------------------|
+|------------------|------------------------------------------------------|
 | ADPC | [ad_adpc.R](https://github.com/pharmaverse/admiral/blob/main/inst/templates/ad_adpc.R){target="_blank"} |
+
+## Summary
+
+-   `{adimiral}` Functionality is Suitable for PK Data Programming
+-   Minimal Updates to Existing Functions Required
+-   Additional Functions Could be Added if Needed
+-   Programming Flow is Consistent with other ADaMs
 
 ## Questions and Answers
 
@@ -892,6 +936,6 @@ adpc <- adpc %>%
 ## Contact
 
 -   Jeff Dickinson
--   jeff.dickinson\@navitaslifesciences.com
+-   email: \[jeff.dickinson\@navitaslifesciences.com\]
 -   GitHub: jeffreyad (<https://github.com/jeffreyad>)
--   Slack Pharmaverse Channel
+-   Slack Pharmaverse Channel (<https://pharmaverse.slack.com/ssb/redirect>)
