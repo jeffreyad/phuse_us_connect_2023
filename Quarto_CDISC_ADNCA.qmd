@@ -60,12 +60,12 @@ Non-compartmental analysis looks at the concentration of a drug in the body (e.g
 | ARRLT    | Actual Rel. Time from Ref. Dose        |
 | MRRLT    | Modified Rel. Time from Ref. Dose      |
 
-Note a relative time variable may refer to previous dose or next upcoming dose
+Note a relative time variable may refer to previous dose or next dose
 
 ::: notes
 Here is a list of important nominal and actual relative time variables
 
-Timing Variables may refer to previous dose or next upcoming dose
+Timing Variables may refer to previous dose or next dose
 :::
 
 ## Brief Overview of `{admiral}`
@@ -208,7 +208,7 @@ print_df <- function(dataset, display_vars = NULL) {
     select(!!!display_vars) 
   
   
-  head(out, n = 20)
+  head(out, n = 25)
 }
 
 
@@ -508,6 +508,8 @@ print_df(
 )
 ```
 
+`FANLDTM` = First Datetime of Dose for Analyte
+
 ::: notes
 Here is the output for first dose datetime Note `FANLDTM` = First Datetime of Dose for Analyte
 :::
@@ -562,7 +564,8 @@ print_df(
 )
 ```
 
-Note `ADTM_prev` is the Datetime of the Previous Dose `AVISIT_prev` is the Analysis Visit of the Previous Dose
+Note `ADTM_prev` is the Datetime of the Previous Dose 
+`AVISIT_prev` is the Analysis Visit of the Previous Dose
 
 ::: notes
 Here the output from the reference dose dates Note ADTM_prev is the datetime for the previous dose
@@ -592,7 +595,7 @@ adpc <- adpc %>%
 ```
 
 ::: notes
-Similarly we find the next upcoming dose Note ADTM_next is the datetime for the next dose
+Similarly we find the next dose Note ADTM_next is the datetime for the next dose
 :::
 
 ## Find Next Dose Output
@@ -607,7 +610,7 @@ print_df(
 )
 ```
 
-Note `ADTM_next` is the Datetime of the Next Upcoming Dose
+Note `ADTM_next` is the Datetime of the Next Dose
 
 ::: notes
 Here is our output for finding next dose Note ADTM_next is the datetime for the next dose And AVISIT_next is the Analysis Visit for next dose
@@ -672,7 +675,8 @@ print_df(
 )
 ```
 
-Note `NFRLT_prev` is the Nominal Relative Time from the Previous Dose `NFRLT_next` is the Nominal Relative Time for the Next Dose
+Note `NFRLT_prev` is the Nominal Relative Time from the Previous Dose 
+`NFRLT_next` is the Nominal Relative Time for the Next Dose
 
 ::: notes
 Here is the output from these steps Note `NFRLT_prev` is the Nominal Relative Time from the Previous Dose `NFRLT_next` is the Nominal Relative Time for the Next Dose
@@ -767,7 +771,8 @@ print_df(
 )
 ```
 
-Note `AFRLT` Actual Relative Time from Analyte First Dose `ARRLT` Actual Relative Time from Reference Dose
+`AFRLT` Actual Relative Time from Analyte First Dose 
+`ARRLT` Actual Relative Time from Reference Dose
 
 ::: notes
 Here the output after combining PC and EX records and deriving relative time variables Note `AFRLT` Actual Relative Time from Analyte First Dose `ARRLT` Actual Relative Time from Reference Dose We do not keep `AXRLT` but it is the actual time to the next dose
@@ -806,7 +811,8 @@ print_df(
 )
 ```
 
-Note `NFRLT` Nominal Relative Time from Analyte First Dose `NRRLT` Nominal Relative Time from Reference Dose
+`NFRLT` Nominal Relative Time from Analyte First Dose 
+`NRRLT` Nominal Relative Time from Reference Dose
 
 ::: notes
 Here is the output from derviing nominal relative times Note `NFRLT` Nominal Relative Time from Analyte First Dose `NRRLT` Nominal Relative Time from Reference Dose
@@ -890,7 +896,9 @@ print_df(
 )
 ```
 
-Note `ATPT` Analysis Timepoint `ATPTREF` Analysis Timepoint Reference `AVAL` Analysis Value
+Note `ATPT` Analysis Timepoint 
+`ATPTREF` Analysis Timepoint Reference 
+`AVAL` Analysis Value
 
 ::: notes
 Here is the output of these derivations Note `ATPT` Analysis Timepoint `ATPTREF` Analysis Timepoint Reference `AVAL` Analysis Value
@@ -949,10 +957,10 @@ print_df(
 )
 ```
 
-Note that `NRRLT` and `ARRLT` equal zero for next upcoming dose
+Note that `NRRLT` and `ARRLT` equal zero for next dose
 
 ::: notes
-Here output for duplicated records ATPT is changed to "Pre-dose" Note `DTYPE` = "COPY" Note that `NRRLT` and `ARRLT` equal zero for next upcoming dose
+Here output for duplicated records ATPT is changed to "Pre-dose" Note `DTYPE` = "COPY" Note that `NRRLT` and `ARRLT` equal zero for next dose
 :::
 
 ## Combine `ADPC` data with Duplicated Records {#combine}
