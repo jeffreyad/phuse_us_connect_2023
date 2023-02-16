@@ -19,15 +19,29 @@ logo: ./images/Navitas.PNG
 -   Conclusions
 -   Questions and Answers
 
-## Overview of CDISC Non-Compartmental Analysis
+::: notes
+Here's quick overview for today
+:::
+
+## CDISC Standards for Non-Compartmental Analysis
 
 [![](./images/CDISC_ADNCA_ADaM_Capture.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
+
+::: notes
+This CDISC guidance for non-compartmental analysis was published in November of 2021
+
+In using admiral for NCA data programming I have followed this guidance closely
+:::
 
 [https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0){target="_blank"}
 
 ## Pharmacokinetic Analysis
 
 [![Example PK Curve with Parameters](./images/PK_curve.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
+
+::: notes
+Non-compartmental analysis looks at the concentration of a drug in the body (e.g. blood) over time
+:::
 
 ## Important Components of ADNCA datasets
 
@@ -45,6 +59,14 @@ logo: ./images/Navitas.PNG
 | NRRLT    | Nominal Rel. Time from Ref. Dose       |
 | ARRLT    | Actual Rel. Time from Ref. Dose        |
 | MRRLT    | Modified Rel. Time from Ref. Dose      |
+
+Note a relative time variable may refer to previous dose or next upcoming dose
+
+::: notes
+Here is a list of important nominal and actual relative time variables
+
+Timing Variables may refer to previous dose or next upcoming dose
+:::
 
 ## Brief Overview of `{admiral}`
 
@@ -98,6 +120,7 @@ logo: ./images/Navitas.PNG
 
 ## Programming Workflow
 
+::: incremental
 -   [Read in Data](#readdata)
 
 -   [Expand Dosing Records](#expand)
@@ -109,14 +132,16 @@ logo: ./images/Navitas.PNG
 -   [Combine `PC` and `EX` Records and Derive Relative Time Variables](#relative)
 
 -   [Derive Analysis Variables](#analysis)
+:::
 
 ## Programming Workflow (Continued)
 
+::: incremental
 -   [Create Duplicated Records for Analysis](#copy)
 
 -   [Combine `ADPC` data with Duplicated Records](#combine)
 
--   [Calculate Change from Baseline](#base)
+-   [Calculate Baseline and Change from Baseline](#base)
 
 -   [Assign `ASEQ`](#aseq)
 
@@ -125,6 +150,7 @@ logo: ./images/Navitas.PNG
 -   [Add ADSL variables](#adsl_vars)
 
 -   [Add Labels and Attributes](#attributes)
+:::
 
 ## `{admiral}` Libraries
 
@@ -137,6 +163,10 @@ library(lubridate)
 library(stringr)
 
 ```
+
+::: notes
+Here are the required packages
+:::
 
 ## Read in Data {#readdata}
 
@@ -153,6 +183,10 @@ pc <- convert_blanks_to_na(admiral_pc)
 vs <- convert_blanks_to_na(admiral_vs)
 
 ```
+
+::: notes
+We read in the test dataset from the admiral.test library Note we convert blanks to NA so they are handled consistently within R The test data for EX/PC consist of a daily patch
+:::
 
 ```{r echo=FALSE}
 options(max.print=25)
@@ -191,6 +225,10 @@ print_df(
 )
 ```
 
+::: notes
+Here is our PC rawdata This shows concentrations over 48 hours from a daily patch
+:::
+
 ## Join `ADSL` with `PC`
 
 -   Use function `derive_vars_merged()`
@@ -204,6 +242,10 @@ print_df(
 
     -   `derive_vars_dy()`
 -   Derive `NFRLT` for `PC` data based on `PCTPTNUM`
+
+::: notes
+First we join ADSL with our PC data
+:::
 
 ## `PC` Merge Code
 
@@ -237,6 +279,10 @@ adpc <- pc %>%
   )
 ```
 
+::: notes
+Here is the code for joining ADSL with PC
+:::
+
 ## `PC` Merge Code Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -245,6 +291,12 @@ print_df(adpc,
          display_vars = exprs(USUBJID, PCTEST, ADTM, VISIT, PCTPT, NFRLT))
 
 ```
+
+Note Numeric Datetimes and Nominal Relative Time from Analyte First Dose `NFRLT`
+
+::: notes
+Here is the output of joining ADSL with PC Note Numeric Datetimes and Nominal Relative Time from Analyte First Dose `NFRLT`
+:::
 
 ## `EX` Rawdata
 
@@ -257,6 +309,10 @@ print_df(
 )
 ```
 
+::: notes
+Here is our exposure data This is a daily patch
+:::
+
 ## Merge `ADSL` with `EX`
 
 -   Use Function `derive_vars_merged()`
@@ -268,6 +324,10 @@ print_df(
 
     -   `derive_vars_dtm_to_dt()`
 -   Derive `NFRLT` based on `VISITDY`
+
+::: notes
+First we merge with ADSL
+:::
 
 ## `EX` Merge Code
 
@@ -323,6 +383,12 @@ print_df(
 )
 ```
 
+Note Numeric Dates and Nominal Relative Time from Analyte First Dose `NFRLT`
+
+::: notes
+Here is the output of our merge Note Numeric Dates and Nominal Relative Time from Analyte First Dose `NFRLT`
+:::
+
 ## Expand Dosing Records {#expand}
 
 -   Need to add records between start date and end date
@@ -330,6 +396,10 @@ print_df(
 -   Need to also expand nominal relative time `NFRLT`
 -   For example `EXDOSFRQ` = "QD" will expand `NFRLT` by 24 hours
 -   New feature of function
+
+::: notes
+Next we need to expand dosing records between start date and end date
+:::
 
 ## Expansion Example Code
 
@@ -369,6 +439,10 @@ ex_exp <- ex %>%
   derive_vars_dy(reference_date = TRTSDT, source_vars = exprs(ADT))
 ```
 
+::: notes
+Here is our expansion code Note new parameter of create_single_dose_dataset()
+:::
+
 ## Expansion Code Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -379,11 +453,23 @@ print_df(
 )
 ```
 
+Note that `NFRLT` is expanded by 24 hours for each record
+
+::: notes
+Here is the output of our expansion expansion Note that `NFRLT` is expanded by 24 hours for each record And we have updated `AVISIT` to "Day 1", "Day 2", etc.
+:::
+
 ## Find First Dose and Calculate `FANLDTM` {#firstdose}
 
 -   Use Function `derive_vars_merged()`
 -   Parameter `new_vars` used to derive `FANLDTM`
 -   Recalculate `AVISIT` and `AVISITN` based on `NFRLT` for this study
+
+`FANLDTM` = First Datetime of Dose for Analyte
+
+::: notes
+Next we find our first dose datetime
+:::
 
 ## First Dose Code
 
@@ -409,6 +495,10 @@ adpc <- adpc %>%
   )
 ```
 
+::: notes
+Here is the code for first dose datetime
+:::
+
 ## First Dose Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -418,10 +508,18 @@ print_df(
 )
 ```
 
+::: notes
+Here is the output for first dose datetime Note `FANLDTM` = First Datetime of Dose for Analyte
+:::
+
 ## Find Reference Dose Dates Corresponding to PK Records {#dosedates}
 
 -   Use Function `derive_vars_joined()`
 -   Parameter `filter_join` used to set condition
+
+::: notes
+Next we find our reference dose dates corresponding to PK records
+:::
 
 ## Find Reference Dose Dates Code
 
@@ -448,6 +546,10 @@ adpc <- adpc %>%
   )
 ```
 
+::: notes
+Here is our code for finding reference dose dates corresponding to PK records Note `filter_join` condition This is comparing the datetime of the concentration record with the datetime of the previous dose
+:::
+
 ## Find Reference Dose Dates Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -459,6 +561,12 @@ print_df(
   )
 )
 ```
+
+Note `ADTM_prev` is the Datetime of the Previous Dose `AVISIT_prev` is the Analysis Visit of the Previous Dose
+
+::: notes
+Here the output from the reference dose dates Note ADTM_prev is the datetime for the previous dose
+:::
 
 ## Find Next Dose
 
@@ -483,6 +591,10 @@ adpc <- adpc %>%
   )
 ```
 
+::: notes
+Similarly we find the next upcoming dose Note ADTM_next is the datetime for the next dose
+:::
+
 ## Find Next Dose Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -494,6 +606,12 @@ print_df(
   )
 )
 ```
+
+Note `ADTM_next` is the Datetime of the Next Upcoming Dose
+
+::: notes
+Here is our output for finding next dose Note ADTM_next is the datetime for the next dose And AVISIT_next is the Analysis Visit for next dose
+:::
 
 ## Find Previous Nominal Dose
 
@@ -515,6 +633,10 @@ adpc <- adpc %>%
   )
 ```
 
+::: notes
+We will do the same thing with nominal times In real studies you will find the nominal time does not always match the actual time
+:::
+
 ## Find Next Nominal Dose
 
 ```{r eval=TRUE, echo=TRUE}
@@ -535,6 +657,10 @@ adpc <- adpc %>%
   )
 ```
 
+::: notes
+Here we also find the Next Nominal Time
+:::
+
 ## Find Next Nominal Dose Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -546,11 +672,21 @@ print_df(
 )
 ```
 
+Note `NFRLT_prev` is the Nominal Relative Time from the Previous Dose `NFRLT_next` is the Nominal Relative Time for the Next Dose
+
+::: notes
+Here is the output from these steps Note `NFRLT_prev` is the Nominal Relative Time from the Previous Dose `NFRLT_next` is the Nominal Relative Time for the Next Dose
+:::
+
 ## Combine PC and EX Records and Derive Relative Time Variables {#relative}
 
 -   Include both dosing and concentration records
 -   Use function `derive_vars_duration()`
 -   Create Actual Relative Time `AFRLT`
+
+::: notes
+Next we combine PC and EX records and derive relative time variables
+:::
 
 ## Combine PC and EX Records and Derive Relative Time Variables Code
 
@@ -618,6 +754,10 @@ adpc <- bind_rows(adpc, ex_exp) %>%
   derive_vars_dtm_to_tm(exprs(PCRFTDTM))
 ```
 
+::: notes
+Here our code for combining PC and EX records and deriving relative time variables
+:::
+
 ## Derive Relative Time Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -626,6 +766,12 @@ print_df(
   display_vars = exprs(USUBJID, FANLDT, AVISIT, PCTPT, AFRLT, ARRLT, AXRLT)
 )
 ```
+
+Note `AFRLT` Actual Relative Time from Analyte First Dose `ARRLT` Actual Relative Time from Reference Dose
+
+::: notes
+Here the output after combining PC and EX records and deriving relative time variables Note `AFRLT` Actual Relative Time from Analyte First Dose `ARRLT` Actual Relative Time from Reference Dose We do not keep `AXRLT` but it is the actual time to the next dose
+:::
 
 ## Find Nominal Relative Times
 
@@ -647,6 +793,10 @@ adpc <- adpc %>%
   )
 ```
 
+::: notes
+Next we Find Nominal Relative Times
+:::
+
 ## Nominal Relative Times Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -655,6 +805,12 @@ print_df(
   display_vars = exprs(USUBJID, AVISIT, PCTPT, NFRLT, NRRLT, NXRLT)
 )
 ```
+
+Note `NFRLT` Nominal Relative Time from Analyte First Dose `NRRLT` Nominal Relative Time from Reference Dose
+
+::: notes
+Here is the output from derviing nominal relative times Note `NFRLT` Nominal Relative Time from Analyte First Dose `NRRLT` Nominal Relative Time from Reference Dose
+:::
 
 ## Derive Analysis Variables {#analysis}
 
@@ -721,6 +877,10 @@ adpc <- adpc %>%
   )
 ```
 
+::: notes
+Next we derive an number of analysis variables Including `ATPTREF` Analysis Timepoint Reference and `AVAL` Analysis Value
+:::
+
 ## Analysis Variable Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -729,6 +889,12 @@ print_df(
   display_vars = exprs(USUBJID, NFRLT, AVISIT, ATPT, ABLFL, ATPTREF, AVAL, AVALCAT1)
 )
 ```
+
+Note `ATPT` Analysis Timepoint `ATPTREF` Analysis Timepoint Reference `AVAL` Analysis Value
+
+::: notes
+Here is the output of these derivations Note `ATPT` Analysis Timepoint `ATPTREF` Analysis Timepoint Reference `AVAL` Analysis Value
+:::
 
 ## Create Duplicated Records for Analysis {#copy}
 
@@ -739,9 +905,14 @@ print_df(
 -   Change "24h Post-dose" to "Pre-dose"
 -   `ABLFL` is set to "Y"
 
+::: notes
+We will create duplicated records for analysis "24 Hour Post-Dose" will also become "Pre-Dose"
+:::
+
 ## Duplicated Records for Analysis Code
 
 ```{r eval=TRUE, echo=TRUE}
+#| code-line-numbers: "|10,11|15,18"
 # ---- Create DTYPE copy records ----
 
 dtype <- adpc %>%
@@ -765,6 +936,10 @@ dtype <- adpc %>%
   derive_vars_dtm_to_tm(exprs(PCRFTDTM))
 ```
 
+::: notes
+Here is the code for the duplicated records ATPT is changed to "Pre-dose" Note `DTYPE` = "COPY"
+:::
+
 ## Duplicated Records for Analysis Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -773,6 +948,12 @@ print_df(
   display_vars = exprs(USUBJID, DTYPE, BASETYPE, ATPT, NFRLT, NRRLT, AFRLT, ARRLT )
 )
 ```
+
+Note that `NRRLT` and `ARRLT` equal zero for next upcoming dose
+
+::: notes
+Here output for duplicated records ATPT is changed to "Pre-dose" Note `DTYPE` = "COPY" Note that `NRRLT` and `ARRLT` equal zero for next upcoming dose
+:::
 
 ## Combine `ADPC` data with Duplicated Records {#combine}
 
@@ -789,14 +970,22 @@ adpc <- bind_rows(adpc, dtype) %>%
   )
 ```
 
+::: notes
+Now we combine the duplicated records with the original records
+:::
+
 ## Combine `ADPC` Output
 
 ```{r eval=TRUE, echo=FALSE}
 adpc %>%
-  print_df(display_vars = exprs(STUDYID, USUBJID, BASETYPE, ADTM, ATPT, DTYPE, ARRLT))
+  print_df(display_vars = exprs(USUBJID, BASETYPE, ATPT, DTYPE, ARRLT))
 ```
 
-## Calculate Change from Baseline {#base}
+::: notes
+Here is output from combined records Note DTYPE = "COPY" records
+:::
+
+## Calculate Baseline and Change from Baseline {#base}
 
 ```{r eval=TRUE, echo=TRUE}
 
@@ -814,6 +1003,12 @@ adpc <- adpc %>%
 adpc <- derive_var_chg(adpc)
 ```
 
+Use functions `derive_var_base()` and `derive_var_chg()`
+
+::: notes
+Now we calculate baseline and change from baseline
+:::
+
 ## Baseline and Change Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -822,6 +1017,10 @@ adpc %>%
     USUBJID, BASETYPE, DTYPE, AVISIT, ATPT, AVAL, NRRLT, ARRLT, BASE, CHG
   ))
 ```
+
+::: notes
+Note BASE and CHG now
+:::
 
 ## Add `ASEQ` {#aseq}
 
@@ -846,6 +1045,12 @@ adpc <- adpc %>%
   derive_vars_merged(dataset_add = select(param_lookup, -PCTESTCD), by_vars = exprs(PARAMCD))
 ```
 
+Use function `derive_var_obs_number()`
+
+::: notes
+Here we add `ASEQ`
+:::
+
 ## `ASEQ` Ouput
 
 ```{r eval=TRUE, echo=FALSE}
@@ -855,11 +1060,19 @@ adpc %>%
   ))
 ```
 
+::: notes
+Note `ASEQ`
+:::
+
 ## Add Additional Baseline Variables {#baselines}
 
 -   Derive additional baseline values from `VS`
 -   Baseline height `HTBL` and weight `WTBL`
 -   Compute body mass index (BMI) with `compute_bmi()`
+
+::: notes
+Now we add additional baselines from vital signs
+:::
 
 ## Additional Baseline Variables Code
 
@@ -885,6 +1098,12 @@ adpc <- adpc %>%
   )
 ```
 
+Use `derive_vars_merged()` function
+
+::: notes
+Here is the code for adding baselines from vital signs
+:::
+
 ## Additional Baseline Output
 
 ```{r eval=TRUE, echo=FALSE}
@@ -893,6 +1112,10 @@ adpc %>%
     USUBJID, HTBL, HTBLU, WTBL, WTBLU, BMIBL, BMIBLU, BASETYPE, ATPT, AVAL
   ))
 ```
+
+::: notes
+Here are the additional baselines
+:::
 
 ## Add the `ADSL` variables {#adsl_vars}
 
@@ -905,13 +1128,23 @@ adpc <- adpc %>%
   )
 ```
 
+Use `derive_vars_merged()` function
+
+::: notes
+Here is the code for merging ADSL
+:::
+
 ## Add Labels and Attributes {#attributes}
 
--   [metacore](https://atorus-research.github.io/metacore/): establish a common foundation for the use of metadata within an R session
+-   [metacore](https://atorus-research.github.io/metacore/){target="_blank"}: manage metadata![](images/metacore.png){width="10%"}
 
--   [metatools](https://pharmaverse.github.io/metatools/):enable the use of metacore objects: build datasets or enhance columns in existing datasets as well as checking datasets against the metadata
+-   [metatools](https://pharmaverse.github.io/metatools/){target="_blank"}: apply metadata to dataset![](images/metatools.png){width="10%"}
 
--   [xportr](https://atorus-research.github.io/xportr/): functionality to associate all metadata information to a local R data frame, perform data set level validation checks and convert into a transport v5 file(xpt)
+-   [xportr](https://atorus-research.github.io/xportr/){target="_blank"}: export transport file![](images/xportr.png){width="10%"}
+
+::: notes
+Additional packages can be used for managing metadata We can use XPORTR to export a v5 transport file
+:::
 
 ## Example Script
 
