@@ -23,7 +23,7 @@ logo: ./images/Navitas.PNG
 
 [![](./images/CDISC_ADNCA_ADaM_Capture.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
 
-<https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0>
+[https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0){target="_blank"}
 
 ## Pharmacokinetic Analysis
 
@@ -50,7 +50,7 @@ logo: ./images/Navitas.PNG
 
 [![](./images/admiral.png){width="574"}](https://github.com/pharmaverse/admiral)
 
-<https://github.com/pharmaverse/admiral>
+[https://github.com/pharmaverse/admiral](https://github.com/pharmaverse/admiral){target="_blank"}
 
 ## `{admiral}`
 
@@ -70,7 +70,7 @@ logo: ./images/Navitas.PNG
 
 -   Multiple Coordinated Functions
 
-::: {.columns}
+::: columns
 ::: {.column width="50%"}
 ![](images/ModularPicture3.png){width="100%"}
 :::
@@ -86,7 +86,8 @@ logo: ./images/Navitas.PNG
 
 <https://github.com/pharmaverse>
 
-## `{adimiral}` updates for PK 
+## `{admiral}` updates for PK
+
 (March 6, 2023 release 0.10.0)
 
 -   New `ad_adpc.R` Template
@@ -333,7 +334,7 @@ print_df(
 ## Expansion Example Code
 
 ```{r eval=TRUE, echo=TRUE}
-#| code-line-numbers: "|4-18|10"
+#| code-line-numbers: "|4-18|10|22"
 # ---- Expand dosing records between start and end dates ----
 
 ex_exp <- ex %>%
@@ -374,7 +375,7 @@ ex_exp <- ex %>%
 
 print_df(
   ex_exp,
-  display_vars = exprs(USUBJID, DRUG, EXDOSFRQ, ASTDTM, AENDTM, AVISIT, NFRLT)
+  display_vars = exprs(USUBJID, DRUG, EXDOSFRQ, ASTDT, AVISIT, NFRLT)
 )
 ```
 
@@ -454,7 +455,7 @@ print_df(
   adpc,
   display_vars = exprs(
     USUBJID,
-    VISIT, ADTM, VISIT, PCTPT, ADTM_prev, EXDOSE_prev, AVISIT_prev
+    VISIT, ADTM, VISIT, PCTPT, ADTM_prev, AVISIT_prev
   )
 )
 ```
@@ -489,7 +490,7 @@ print_df(
   adpc,
   display_vars = exprs(
     USUBJID,
-    VISIT, ADTM, VISIT, PCTPT, ADTM_next, EXDOSE_next, AVISIT_next
+    VISIT, ADTM, VISIT, PCTPT, ADTM_next, AVISIT_next
   )
 )
 ```
@@ -622,7 +623,7 @@ adpc <- bind_rows(adpc, ex_exp) %>%
 ```{r eval=TRUE, echo=FALSE}
 print_df(
   adpc,
-  display_vars = exprs(USUBJID, FANLDTM, AVISIT, PCTPT, AFRLT, ARRLT, AXRLT)
+  display_vars = exprs(USUBJID, FANLDT, AVISIT, PCTPT, AFRLT, ARRLT, AXRLT)
 )
 ```
 
@@ -769,7 +770,7 @@ dtype <- adpc %>%
 ```{r eval=TRUE, echo=FALSE}
 print_df(
   dtype,
-  display_vars = exprs(USUBJID, DTYPE, ATPT, NFRLT, NRRLT, AFRLT, ARRLT, BASETYPE)
+  display_vars = exprs(USUBJID, DTYPE, BASETYPE, ATPT, NFRLT, NRRLT, AFRLT, ARRLT )
 )
 ```
 
@@ -792,7 +793,7 @@ adpc <- bind_rows(adpc, dtype) %>%
 
 ```{r eval=TRUE, echo=FALSE}
 adpc %>%
-  print_df(display_vars = exprs(STUDYID, USUBJID, BASETYPE, ADTM, ATPT, NFRLT, NRRLT, ARRLT, MRRLT))
+  print_df(display_vars = exprs(STUDYID, USUBJID, BASETYPE, ADTM, ATPT, DTYPE, ARRLT))
 ```
 
 ## Calculate Change from Baseline {#base}
@@ -818,7 +819,7 @@ adpc <- derive_var_chg(adpc)
 ```{r eval=TRUE, echo=FALSE}
 adpc %>%
   print_df(display_vars = exprs(
-    USUBJID, BASETYPE, DTYPE, AVISIT, ATPT, AVAL, NFRLT, NRRLT, AFRLT, ARRLT, BASE, CHG
+    USUBJID, BASETYPE, DTYPE, AVISIT, ATPT, AVAL, NRRLT, ARRLT, BASE, CHG
   ))
 ```
 
@@ -912,20 +913,19 @@ adpc <- adpc %>%
 
 -   [xportr](https://atorus-research.github.io/xportr/): functionality to associate all metadata information to a local R data frame, perform data set level validation checks and convert into a transport v5 file(xpt)
 
-## Example Scripts
+## Example Script
 
-| ADaM | Sample Code                                                                                             |
-|------------------|------------------------------------------------------|
-| ADPC | [ad_adpc.R](https://github.com/pharmaverse/admiral/blob/main/inst/templates/ad_adpc.R){target="_blank"} |
+-   ADPC [ad_adpc.R](https://github.com/pharmaverse/admiral/blob/main/inst/templates/ad_adpc.R){target="_blank"}
 
-## Summary
+-   Call `use_ad_template("adpc")`
 
--   `{adimiral}` Functionality is Suitable for PK Data Programming
+## Conclusions
+
+-   `{admiral}` Functionality is Suitable for PK Data Programming
 -   Minimal Updates to Existing Functions Required
 -   Additional Functions Could be Added if Needed
 -   Programming Flow is Consistent with other ADaMs
-
-## Questions and Answers
+-   Extensible to Other PK Programming such as `ADPPK`
 
 ## Thank You
 
@@ -933,9 +933,11 @@ adpc <- adpc %>%
 -   Roche and Genentech Colleagues
 -   Navitas Data Sciences Colleagues
 
+## Questions and Answers
+
 ## Contact
 
 -   Jeff Dickinson
 -   email: \[jeff.dickinson\@navitaslifesciences.com\]
--   GitHub: jeffreyad (<https://github.com/jeffreyad>)
--   Slack Pharmaverse Channel (<https://pharmaverse.slack.com/ssb/redirect>)
+-   GitHub: [jeffreyad](https://github.com/jeffreyad){target="_blank"}
+-   Slack Pharmaverse [Channel](https://pharmaverse.slack.com/ssb/redirect){target="_blank"}
