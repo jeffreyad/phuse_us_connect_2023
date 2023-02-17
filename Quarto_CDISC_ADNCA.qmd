@@ -109,10 +109,8 @@ Here is an overview of duplicated records for analysis
 
 ![{admiral} Ecosystem](images/AdmiralEcosystem.png)
 
-
 ::: notes
-admiral began as a collaboration between Roche and GSK
-The ecosystem has since expanded to include many contributors from multiple companies
+admiral began as a collaboration between Roche and GSK The ecosystem has since expanded to include many contributors from multiple companies
 :::
 
 ## `{admiral}` is Modular
@@ -1203,11 +1201,11 @@ Additional packages can be used for managing metadata We can use XPORTR to expor
 
 ## Questions and Answers
 
+![](images/Navitas.PNG)
+
 ## Contact
 
 -   Jeff Dickinson
 -   email: <a href="mailto:jeff.dickinson@navitaslifesciences.com">jeff.dickinson\@navitaslifesciences.com</a>
 -   GitHub: [jeffreyad](https://github.com/jeffreyad){target="_blank"}
 -   Slack Pharmaverse [Channel](https://pharmaverse.slack.com/ssb/redirect){target="_blank"}
-
-
