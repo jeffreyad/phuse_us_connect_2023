@@ -4,7 +4,7 @@ author: "Jeff Dickinson, Navitas Data Sciences"
 format: 
   revealjs: 
     #incremental: true 
-    theme: default
+    theme: simple
     embed-resources: true
 editor: visual
 logo: ./images/Navitas.PNG
@@ -215,7 +215,7 @@ print_df <- function(dataset, display_vars = NULL) {
     select(!!!display_vars) 
   
   
-  head(out, n = 25)
+  head(out, n = 20)
 }
 
 
