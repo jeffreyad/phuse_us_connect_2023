@@ -4,7 +4,7 @@ author: "Jeff Dickinson, Navitas Data Sciences"
 format: 
   revealjs: 
     #incremental: true 
-    theme: serif
+    theme: default
     embed-resources: true
 editor: visual
 logo: ./images/Navitas.PNG
@@ -70,6 +70,9 @@ Note: a relative time variable may refer to previous dose or next dose
 Here is a list of important nominal and actual relative time variables
 
 Timing Variables may refer to previous dose or next dose
+
+Actual times may be used to calculate parameters
+Nominal times may be used to group output in tables
 :::
 
 ## Brief Overview of `{admiral}`
@@ -110,7 +113,7 @@ Timing Variables may refer to previous dose or next dose
 
 [![](./images/Pharmavers.png)](https://github.com/pharmaverse)
 
-<https://github.com/pharmaverse>
+<https://github.com/pharmaverse>{target="_blank"}
 
 ## `{admiral}` updates for PK
 
@@ -296,7 +299,7 @@ print_df(adpc,
 
 ```
 
-Note Numeric Datetimes and Nominal Relative Time from Analyte First Dose `NFRLT`
+Note numeric datetimes and Nominal Relative Time from Analyte First Dose (`NFRLT`)
 
 ::: notes
 Here is the output of joining ADSL with PC Note Numeric Datetimes and Nominal Relative Time from Analyte First Dose `NFRLT`
@@ -387,7 +390,7 @@ print_df(
 )
 ```
 
-Note Numeric Dates and Nominal Relative Time from Analyte First Dose (`NFRLT`)
+Note numeric dates and Nominal Relative Time from Analyte First Dose (`NFRLT`)
 
 ::: notes
 Here is the output of our merge Note Numeric Dates and Nominal Relative Time from Analyte First Dose `NFRLT`
@@ -568,7 +571,8 @@ print_df(
 )
 ```
 
-`ADTM_prev` is the Datetime of the Previous Dose `AVISIT_prev` is the Analysis Visit of the Previous Dose
+`ADTM_prev` is the datetime of the previous dose 
+`AVISIT_prev` is the analysis visit of the previous dose
 
 ::: notes
 Here the output from the reference dose dates Note ADTM_prev is the datetime for the previous dose
@@ -613,7 +617,7 @@ print_df(
 )
 ```
 
-`ADTM_next` is the Datetime of the Next Dose
+`ADTM_next` is the datetime of the next dose
 
 ::: notes
 Here is our output for finding next dose Note ADTM_next is the datetime for the next dose And AVISIT_next is the Analysis Visit for next dose
@@ -678,7 +682,8 @@ print_df(
 )
 ```
 
-`NFRLT_prev` is the Nominal Relative Time from the Previous Dose `NFRLT_next` is the Nominal Relative Time for the Next Dose
+`NFRLT_prev` is the nominal relative time from the previous dose 
+`NFRLT_next` is the nominal relative time for the next dose
 
 ::: notes
 Here is the output from these steps Note `NFRLT_prev` is the Nominal Relative Time from the Previous Dose `NFRLT_next` is the Nominal Relative Time for the Next Dose
@@ -773,7 +778,8 @@ print_df(
 )
 ```
 
-`AFRLT` Actual Relative Time from Analyte First Dose `ARRLT` Actual Relative Time from Reference Dose
+`AFRLT` = Actual Relative Time from Analyte First Dose 
+`ARRLT` = Actual Relative Time from Reference Dose
 
 ::: notes
 Here the output after combining PC and EX records and deriving relative time variables Note `AFRLT` Actual Relative Time from Analyte First Dose `ARRLT` Actual Relative Time from Reference Dose We do not keep `AXRLT` but it is the actual time to the next dose
@@ -812,7 +818,8 @@ print_df(
 )
 ```
 
-`NFRLT` Nominal Relative Time from Analyte First Dose `NRRLT` Nominal Relative Time from Reference Dose
+`NFRLT` = Nominal Relative Time from Analyte First Dose
+`NRRLT` = Nominal Relative Time from Reference Dose
 
 ::: notes
 Here is the output from derviing nominal relative times Note `NFRLT` Nominal Relative Time from Analyte First Dose `NRRLT` Nominal Relative Time from Reference Dose
