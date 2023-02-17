@@ -37,12 +37,12 @@ I will be using terms ADNCA and ADPC interchangeably
 
 [https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0){target="_blank"}
 
-## Pharmacokinetic Analysis
+## Non-Compartmental Analysis (NCA)
 
 [![Example PK Curve with Parameters](./images/PK_curve.PNG)](https://www.cdisc.org/standards/foundational/adam/adamig-non-compartmental-analysis-input-data-v1-0)
 
 ::: notes
-Non-compartmental analysis looks at the concentration of a drug in the body (e.g. blood) over time
+Non-compartmental analysis (NCA) is one way to model the level of exposure following administration of a drug Here you can see a sample PK curve and the types of parameters that may be estimated
 :::
 
 ## Important Components of ADNCA datasets
@@ -71,8 +71,20 @@ Here is a list of important nominal and actual relative time variables
 
 Timing Variables may refer to previous dose or next dose
 
-Actual times may be used to calculate parameters
-Nominal times may be used to group output in tables
+Actual times may be used to calculate parameters Nominal times may be used to group output in tables
+:::
+
+## Duplicated Records for Analysis
+
+-   Use One Record in More than One Way
+-   Record may be both "24 Hour Post-Dose" and "Pre-Dose"
+-   Or "Cycle 2 Day 1 Pre-Dose" and "Cycle 1 Day 28 Post-Dose"
+-   Relative Times for "Pre-Dose" will be Negative
+-   Create `DTYPE` = "COPY" Records
+-   Original `PCSEQ` is Retained
+
+::: notes
+Here is an overview of duplicated records for analysis
 :::
 
 ## Brief Overview of `{admiral}`
@@ -91,6 +103,16 @@ Nominal times may be used to group output in tables
 -   `{admiral}` is Modular
 
 -   `{admiral}` is Part of Pharmaverse
+:::
+
+## `{admiral}` is Open Source and Collaborative
+
+![{admiral} Ecosystem](images/AdmiralEcosystem.png)
+
+
+::: notes
+admiral began as a collaboration between Roche and GSK
+The ecosystem has since expanded to include many contributors from multiple companies
 :::
 
 ## `{admiral}` is Modular
@@ -113,7 +135,7 @@ Nominal times may be used to group output in tables
 
 [![](./images/Pharmavers.png)](https://github.com/pharmaverse)
 
-<https://github.com/pharmaverse>{target="_blank"}
+[https://github.com/pharmaverse](https://github.com/pharmaverse){target="_blank"}
 
 ## `{admiral}` updates for PK
 
@@ -232,6 +254,8 @@ print_df(
 )
 ```
 
+This CDISC test `PC` data has concentrations over 48 hours from a daily patch
+
 ::: notes
 Here is our PC rawdata This shows concentrations over 48 hours from a daily patch
 :::
@@ -315,6 +339,8 @@ print_df(
   )
 )
 ```
+
+This CDISC test exposure data is for a daily patch
 
 ::: notes
 Here is our exposure data This is a daily patch
@@ -426,7 +452,7 @@ ex_exp <- ex %>%
     lookup_column = CDISC_VALUE,
     keep_source_vars = exprs(
       STUDYID, USUBJID, EVID, EXDOSFRQ, EXDOSFRM,
-      NFRLT, EXDOSE, EXTRT, ASTDT, ASTDTM, AENDT, AENDTM,
+      NFRLT, EXDOSE, EXDOSU, EXTRT, ASTDT, ASTDTM, AENDT, AENDTM,
       VISIT, VISITNUM, VISITDY,
       TRT01A, TRT01P, DOMAIN, EXSEQ, !!!adsl_vars
     )
@@ -571,8 +597,7 @@ print_df(
 )
 ```
 
-`ADTM_prev` is the datetime of the previous dose 
-`AVISIT_prev` is the analysis visit of the previous dose
+`ADTM_prev` is the datetime of the previous dose `AVISIT_prev` is the analysis visit of the previous dose
 
 ::: notes
 Here the output from the reference dose dates Note ADTM_prev is the datetime for the previous dose
@@ -682,8 +707,7 @@ print_df(
 )
 ```
 
-`NFRLT_prev` is the nominal relative time from the previous dose 
-`NFRLT_next` is the nominal relative time for the next dose
+`NFRLT_prev` is the nominal relative time from the previous dose `NFRLT_next` is the nominal relative time for the next dose
 
 ::: notes
 Here is the output from these steps Note `NFRLT_prev` is the Nominal Relative Time from the Previous Dose `NFRLT_next` is the Nominal Relative Time for the Next Dose
@@ -778,8 +802,7 @@ print_df(
 )
 ```
 
-`AFRLT` = Actual Relative Time from Analyte First Dose 
-`ARRLT` = Actual Relative Time from Reference Dose
+`AFRLT` = Actual Relative Time from Analyte First Dose `ARRLT` = Actual Relative Time from Reference Dose
 
 ::: notes
 Here the output after combining PC and EX records and deriving relative time variables Note `AFRLT` Actual Relative Time from Analyte First Dose `ARRLT` Actual Relative Time from Reference Dose We do not keep `AXRLT` but it is the actual time to the next dose
@@ -818,8 +841,7 @@ print_df(
 )
 ```
 
-`NFRLT` = Nominal Relative Time from Analyte First Dose
-`NRRLT` = Nominal Relative Time from Reference Dose
+`NFRLT` = Nominal Relative Time from Analyte First Dose `NRRLT` = Nominal Relative Time from Reference Dose
 
 ::: notes
 Here is the output from derviing nominal relative times Note `NFRLT` Nominal Relative Time from Analyte First Dose `NRRLT` Nominal Relative Time from Reference Dose
@@ -866,7 +888,7 @@ adpc <- adpc %>%
     DOSEU = "mg",
   ) %>%
   mutate(
-    RFLTU = "h",
+    FRLTU = "h",
     RRLTU = "h",
     PARAMCD = coalesce(PCTESTCD, "DOSE"),
     ALLOQ = PCLLOQ,
@@ -876,9 +898,9 @@ adpc <- adpc %>%
       PCSTRESC == "<BLQ" & NFRLT > 0 ~ 0.5 * ALLOQ,
       TRUE ~ PCSTRESN
     ),
-    AVALC = case_when(
-      EVID == 1 ~ paste(EXDOSE),
-      TRUE ~ PCSTRESC
+    AVALU = case_when(
+      EVID == 1 ~ EXDOSU,
+      TRUE ~ PCSTRESU
     ),
     AVALCAT1 = if_else(PCSTRESC == "<BLQ", PCSTRESC, prettyNum(signif(AVAL, digits = 3))),
   ) %>%
@@ -1184,6 +1206,8 @@ Additional packages can be used for managing metadata We can use XPORTR to expor
 ## Contact
 
 -   Jeff Dickinson
--   email: <a href="mailto:jeff.dickinson@navitaslifesciences.com">jeff.dickinson@navitaslifesciences.com</a>
+-   email: <a href="mailto:jeff.dickinson@navitaslifesciences.com">jeff.dickinson\@navitaslifesciences.com</a>
 -   GitHub: [jeffreyad](https://github.com/jeffreyad){target="_blank"}
 -   Slack Pharmaverse [Channel](https://pharmaverse.slack.com/ssb/redirect){target="_blank"}
+
+
