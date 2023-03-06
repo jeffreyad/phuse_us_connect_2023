@@ -1,0 +1,4 @@
+- source: Quarto_CDISC_ADNCA.qmd
+  quarto-pub:
+    - id: ae9256e4-4177-46f6-97a9-060d80209df0
+      url: 'https://quartopub.com/sites/jeffdickinson/programming-cdisc-adam-adnca-using-r-and-admiral'
