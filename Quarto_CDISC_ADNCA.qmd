@@ -135,6 +135,10 @@ admiral began as a collaboration between Roche and GSK The ecosystem has since e
 
 [https://github.com/pharmaverse](https://github.com/pharmaverse){target="_blank"}
 
+::: notes
+Pharmaverse a connected network of companies and individuals working to promote collaborative development of open source R packages for clinical reporting usage across our industry, in a space where previously we would only ever have worked in silos on our own closed source and duplicative solutions
+:::
+
 ## `{admiral}` updates for PK
 
 (March 6, 2023 release 0.10.0)
@@ -1208,4 +1212,4 @@ Additional packages can be used for managing metadata We can use XPORTR to expor
 -   Jeff Dickinson
 -   email: <a href="mailto:jeff.dickinson@navitaslifesciences.com">jeff.dickinson\@navitaslifesciences.com</a>
 -   GitHub: [jeffreyad](https://github.com/jeffreyad){target="_blank"}
--   Slack Pharmaverse [Channel](https://pharmaverse.slack.com/ssb/redirect){target="_blank"}
+-   Slack Pharmaverse [Channel](https://join.slack.com/t/pharmaverse/shared_invite/zt-yv5atkr4-Np2ytJ6W_QKz_4Olo7Jo9A){target="_blank"}
