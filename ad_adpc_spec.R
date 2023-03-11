@@ -377,7 +377,7 @@ adpc <- adpc %>%
     DOSEA = case_when(
       EVID == 1 ~ EXDOSE,
       is.na(EXDOSE_prev) ~ EXDOSE_next,
-      TRUE ~ EXDOSE_next
+      TRUE ~ EXDOSE_prev
     ),
     # Derive Planned Dose
     DOSEP = case_when(
