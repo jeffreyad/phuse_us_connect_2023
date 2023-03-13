@@ -1212,4 +1212,4 @@ Additional packages can be used for managing metadata We can use XPORTR to expor
 -   Jeff Dickinson
 -   email: <a href="mailto:jeff.dickinson@navitaslifesciences.com">jeff.dickinson\@navitaslifesciences.com</a>
 -   GitHub: [jeffreyad](https://github.com/jeffreyad){target="_blank"}
--   Slack Pharmaverse [Channel](https://join.slack.com/t/pharmaverse/shared_invite/zt-yv5atkr4-Np2ytJ6W_QKz_4Olo7Jo9A){target="_blank"}
+-   Slack Pharmaverse Channel
